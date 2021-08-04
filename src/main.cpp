@@ -1,5 +1,5 @@
-#include "effects.h"
 #include "server.h"
+#include "visuals.h"
 
 FadeInOut fadeInOut(CRGB::Aqua, 0);
 Strobe strobe(CRGB::Aqua, 10);
@@ -26,11 +26,35 @@ int activePatternIndex = 3;
 Drawable* activePattern = patterns[activePatternIndex];
 
 // START commands
+
+void reportError(const char* err) {
+  json.clear();
+  json["error"] = err;
+  sendData();
+}
+
+void sync() {
+  json.clear();
+  ColoredDrawable* coloredActivePattern = dynamic_cast<ColoredDrawable*>(activePattern);
+  if (coloredActivePattern) {
+    CRGB color = coloredActivePattern->color;
+    JsonArray rgb = json.createNestedArray("color");
+    rgb.add(color.r);
+    rgb.add(color.g);
+    rgb.add(color.b);
+  }
+  json["speed"] = activePattern->returnDelay;
+  json["brightness"] = FastLED.getBrightness();
+  json["visual"] = activePattern->name;
+  json["index"] = activePatternIndex;
+  sendData();
+}
+
 void setBrightness() {
   int value = json["val"];
   if (value < 0 || value > 255) {
+    reportError("Invalid brightness value, allowed range [0, 255]");
     return;
-    // send response back
   }
   FastLED.setBrightness(value);
   FastLED.show();
@@ -39,32 +63,36 @@ void setBrightness() {
 void setSpeed() {
   int value = json["val"];
   if (value < 0 || value > 10000) {
-    Serial.println("Invalid speed value");
+    reportError("Invalid speed value, allowed range [0, 10000] ms");
     return;
   }
   activePattern->setDelay(value);
 }
 
 void setColor() {
-  int r = json["color"][0], g = json["color"][1], b = json["color"][2];
+  int r = json["val"][0], g = json["val"][1], b = json["val"][2];
   Serial.println(r);
   Serial.println(g);
   Serial.println(b);
   if ((r < 0 || r > 256) || (g < 0 || g > 256) || (b < 0 || b > 256)) {
-    Serial.println("Invalid RGB value");
+    reportError("Invalid RGB value, allowed range [0, 255]");
     return;
   }
   ColoredDrawable* coloredActivePattern = dynamic_cast<ColoredDrawable*>(activePattern);
   if (!coloredActivePattern) {
-    Serial.println("Cannot change color for selected pattern");
+    reportError("Cannot change color for selected pattern");
     return;
   }
   coloredActivePattern->color = CRGB(r,g,b);
 }
 
-void setEffect() {
+void setVisual() {
   isPatternStarted = false;
-  activePatternIndex = json["index"];
+  activePatternIndex = json["val"];
+  if (activePatternIndex < 0 || activePatternIndex > 11) {
+    reportError("Invalid active pattern index value, allowed range [0, 11]");
+    return;
+  }
   activePattern = patterns[activePatternIndex];
   Serial.print("Activating: ");
   Serial.println(activePattern->name);
@@ -74,14 +102,14 @@ void setEffect() {
 void execute(const char* op) {
   if (strcmp(op, "brightness") == 0) {
     setBrightness();
-  } else if (strcmp(op, "effect") == 0) {
-    setEffect();
+  } else if (strcmp(op, "visual") == 0) {
+    setVisual();
   } else if (strcmp(op, "speed") == 0) {
     setSpeed();
   } else if (strcmp(op, "color") == 0) {
     setColor();
   }
-  json.clear();
+  sync();
 }
 
 void loop() {

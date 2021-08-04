@@ -9,7 +9,8 @@ const char* ssid = "IveSeenYouNaked";
 const char* password = "15975345622d";
 const char* hostname = "led-strip";
 
-StaticJsonDocument<300> json;
+char payload[512];
+StaticJsonDocument<512> json;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");            // access at ws://[esp ip]/ws
 AsyncEventSource events("/events");  // event source (Server-Sent events)
@@ -19,6 +20,11 @@ extern void execute(const char* op);
 void onNotFound(AsyncWebServerRequest* request) {
   // Handle Unknown Request
   request->send(404);
+}
+
+void sendData() {
+  serializeJson(json, payload);
+  ws.textAll(payload);
 }
 
 void processRequest(const char* data) {
@@ -33,7 +39,6 @@ void processRequest(const char* data) {
 
 void handleWebSocketMessage(void* arg, uint8_t* data, size_t len) {
   AwsFrameInfo* info = (AwsFrameInfo*)arg;
-
   if (info->final && info->index == 0 && info->len == len &&
       info->opcode == WS_TEXT) {
         processRequest((char *) data);
@@ -67,7 +72,6 @@ void onEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
 
 void setupServer() {
   int tries = 10;
-
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED && tries != 0) {
