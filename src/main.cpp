@@ -29,12 +29,14 @@ Drawable* activePattern = patterns[activePatternIndex];
 
 void reportError(const char* err) {
   json.clear();
+  json["op"] = "error";
   json["error"] = err;
   sendData();
 }
 
 void sync() {
   json.clear();
+  json["op"] = "sync";
   ColoredDrawable* coloredActivePattern = dynamic_cast<ColoredDrawable*>(activePattern);
   if (coloredActivePattern) {
     CRGB color = coloredActivePattern->color;
