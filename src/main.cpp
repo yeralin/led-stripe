@@ -22,7 +22,7 @@ Drawable* patterns[] = {&fadeInOut,     &strobe,
                         &fire,          &meteorRain};
 
 bool isPatternStarted = false;
-int activePatternIndex = 3;
+int activePatternIndex = 8;
 Drawable* activePattern = patterns[activePatternIndex];
 
 // START commands
@@ -115,12 +115,6 @@ void execute(const char* op) {
 }
 
 void loop() {
-  if (!isPatternStarted) {
-    activePattern->start();
-    isPatternStarted = true;
-  }
-  int requestedDelay = activePattern->drawFrame();
-  delay(requestedDelay);
 }
 
 void setup() {

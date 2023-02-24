@@ -7,12 +7,11 @@
 //const char* ssid = "Dan’s iPhone";
 const char* ssid = "IveSeenYouNaked";
 const char* password = "15975345622d";
-const char* hostname = "led-strip";
 
 char payload[512];
 StaticJsonDocument<512> json;
 AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");            // access at ws://[esp ip]/ws
+AsyncWebSocket ws("/");            // access at ws://[esp ip]/ws
 AsyncEventSource events("/events");  // event source (Server-Sent events)
 
 extern void execute(const char* op);
@@ -71,24 +70,8 @@ void onEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
 }
 
 void setupServer() {
-  int tries = 10;
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED && tries != 0) {
-    Serial.print("Attempting to connect to WPA SSID: ");
-    Serial.println(ssid);
-    delay(1000);
-    tries--;
-  }
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("Failed to connect to Wi-Fi, changing to AP mode");
-    WiFi.mode(WIFI_MODE_AP);
-    WiFi.softAP("LED_CHOPAN", password);
-  }
-  if (!MDNS.begin(hostname)) {
-    delay(1000);
-    Serial.println("Failed to set mDNS name");
-  }
+  WiFi.mode(WIFI_MODE_AP);
+  WiFi.softAP("LED_CHAPAN", password);
   ws.onEvent(onEvent);
   server.addHandler(&ws);
   server.addHandler(&events);
