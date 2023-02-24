@@ -22,8 +22,12 @@ Drawable* patterns[] = {&fadeInOut,     &strobe,
                         &fire,          &meteorRain};
 
 bool isPatternStarted = false;
-int activePatternIndex = 8;
-Drawable* activePattern = patterns[activePatternIndex];
+int currentPatternIndex = 8;
+int nextPatternIndex = 8;
+int delayMs = 30;
+int brightness = INITIAL_BRIGHTNESS;
+CRGB color = CRGB(0, 0, 255);
+Drawable* activePattern = patterns[currentPatternIndex];
 
 // START commands
 
@@ -48,7 +52,7 @@ void sync() {
   json["speed"] = activePattern->returnDelay;
   json["brightness"] = FastLED.getBrightness();
   json["visual"] = activePattern->name;
-  json["index"] = activePatternIndex;
+  json["index"] = currentPatternIndex;
   sendData();
 }
 
@@ -58,7 +62,8 @@ void setBrightness() {
     reportError("Invalid brightness value, allowed range [0, 255]");
     return;
   }
-  FastLED.setBrightness(value);
+  brightness = value;
+  FastLED.setBrightness(brightness);
   FastLED.show();
 }
 
@@ -68,7 +73,8 @@ void setSpeed() {
     reportError("Invalid speed value, allowed range [0, 10000] ms");
     return;
   }
-  activePattern->setDelay(value);
+  delayMs = value;
+  activePattern->setDelay(delayMs);
 }
 
 void setColor() {
@@ -85,19 +91,18 @@ void setColor() {
     reportError("Cannot change color for selected pattern");
     return;
   }
-  coloredActivePattern->color = CRGB(r,g,b);
+  color = CRGB(r,g,b);
+  coloredActivePattern->color = color;
 }
 
 void setVisual() {
   isPatternStarted = false;
-  activePatternIndex = json["val"];
-  if (activePatternIndex < 0 || activePatternIndex > 11) {
+  int value = json["val"];
+  if (value < 0 || value > 11) {
     reportError("Invalid active pattern index value, allowed range [0, 11]");
     return;
   }
-  activePattern = patterns[activePatternIndex];
-  Serial.print("Activating: ");
-  Serial.println(activePattern->name);
+  nextPatternIndex = value;
 }
 // END commands
 
@@ -115,6 +120,22 @@ void execute(const char* op) {
 }
 
 void loop() {
+  if (currentPatternIndex != nextPatternIndex) {
+    activePattern->stop();
+    activePattern = patterns[nextPatternIndex];
+    currentPatternIndex = nextPatternIndex;
+    Serial.print("Activating: ");
+    Serial.println(activePattern->name);
+    activePattern->setDelay(delayMs);
+    ColoredDrawable* coloredActivePattern = dynamic_cast<ColoredDrawable*>(activePattern);
+    if (coloredActivePattern != NULL) {
+      coloredActivePattern->color = color;
+    }
+    activePattern->start();
+    sync();
+  }
+  unsigned int delayMs = activePattern->drawFrame();
+  delay(delayMs);
 }
 
 void setup() {

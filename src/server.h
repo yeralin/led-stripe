@@ -39,7 +39,7 @@ void processRequest(const char* data) {
 void handleWebSocketMessage(void* arg, uint8_t* data, size_t len) {
   AwsFrameInfo* info = (AwsFrameInfo*)arg;
   if (info->final && info->index == 0 && info->len == len &&
-      info->opcode == WS_TEXT) {
+      info->opcode == WS_BINARY) {
         processRequest((char *) data);
         const char* op = json["op"];
         Serial.println(op);
