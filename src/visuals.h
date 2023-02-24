@@ -366,8 +366,8 @@ class ColorWipe : public ColoredDrawable {
       i = 0;
       flip = !flip;
     }
-    CRGB color = flip ? color : colorClear;
-    setPixel(i, color.red, color.green, color.blue);
+    CRGB nextColor = flip ? color : colorClear;
+    setPixel(i, nextColor.red, nextColor.green, nextColor.blue);
     showStrip();
     i++;
     return returnDelay;
